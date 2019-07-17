@@ -17,7 +17,9 @@ class BaseCounter(t.Mapping[T, int]):
             return
 
         self._elements = _elements = defaultdict(int)  # type: t.DefaultDict[T, int]
-        self._elements.update(mapping)
+
+        if mapping is not None:
+            self._elements.update(mapping)
                     
     def __new__(cls, mapping: t.Optional[t.Mapping[T, int]] = None):
         if cls is BaseCounter:
@@ -27,7 +29,7 @@ class BaseCounter(t.Mapping[T, int]):
     def __contains__(self, element) -> bool:
         return element in self._elements
 
-    def __getitem__(self, element) -> int:
+    def __getitem__(self, element: T) -> int:
         return self._elements.__getitem__(element)
 
     def __str__(self) -> str:
