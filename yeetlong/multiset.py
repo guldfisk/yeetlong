@@ -72,7 +72,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def __bool__(self) -> bool:
         return bool(self._elements)
 
-    def __iter__(self) -> t.Iterable[T]:
+    def __iter__(self) -> t.Iterator[T]:
         return itertools.chain.from_iterable(
             itertools.starmap(
                 itertools.repeat,
@@ -246,7 +246,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def __gt__(self, other: t.Collection[T]) -> bool:
         return self._issuperset(other, True)
 
-    def __eq__(self, other: t.AbstractSet[T]) -> bool:
+    def __eq__(self, other: t.Collection[T]) -> bool:
         if isinstance(other, BaseMultiset):
             return self._elements == other._elements
         return self._issubset(other, False) and len(self) == len(other)
@@ -436,7 +436,7 @@ class Multiset(BaseMultiset[T]):
         return self
 
 
-class FrozenMultiset(BaseMultiset):
+class FrozenMultiset(BaseMultiset[T]):
     __slots__ = ('_hash',)
 
     def __hash__(self) -> int:
