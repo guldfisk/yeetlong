@@ -2,28 +2,22 @@
 Forked from https://github.com/wheerd/multiset
 Thanks my guy
 """
+
 from __future__ import annotations
 
 import typing as t
-
-from collections import defaultdict
-
 import itertools
+from collections import defaultdict
 
 
 T = t.TypeVar('T')
+V = t.TypeVar('V')
 
-# _int_type = int
-# _sequence_types = (tuple, list, range, set, frozenset, str)
-# _iter_types = (type(iter([])), type((lambda: (yield))()))
-#
-# _all_basic_types = _sequence_types + _iter_types + (dict, )
 
 __all__ = ['BaseMultiset', 'Multiset', 'FrozenMultiset']
 
 
 class BaseMultiset(t.AbstractSet[T]):
-
     __slots__ = ('_elements',)
 
     def __init__(self, iterable: t.Optional[t.Iterable[T]]=None) -> None:
@@ -53,10 +47,17 @@ class BaseMultiset(t.AbstractSet[T]):
         return element in self._elements
 
     def __getitem__(self, element) -> int:
-        return self._elements.get(element, 0)
+        return self._elements.__getitem__(element)
+
+    def __str__(self) -> str:
+        return '({})'.format(
+            ', '.join(
+                map(str, self)
+            ),
+        )
 
     def __repr__(self) -> str:
-        return '{}({{}})'.format(
+        return '{}({{{}}})'.format(
             self.__class__.__name__,
             ', '.join(
                 '{}: {}'.format(item, multiplicity)
@@ -87,7 +88,6 @@ class BaseMultiset(t.AbstractSet[T]):
     def difference(self, *others: t.Iterable[T]) -> BaseMultiset[T]:
         result = self.__copy__()
         _elements = result._elements
-        _total = result._total
 
         for other in map(self._as_multiset, others):
             for element, multiplicity in other.items():
@@ -146,10 +146,10 @@ class BaseMultiset(t.AbstractSet[T]):
         for other in map(self._as_mapping, others):
             for element, multiplicity in list(_elements.items()):
                 new_multiplicity = other.get(element, 0)
-                if multiplicity > new_multiplicity > 0:
-                    _elements[element] = new_multiplicity
-                else:
+                if new_multiplicity <= 0:
                     del _elements[element]
+                elif multiplicity > new_multiplicity:
+                    _elements[element] = new_multiplicity
 
         return result
 
@@ -158,7 +158,7 @@ class BaseMultiset(t.AbstractSet[T]):
 
     __rand__ = __and__
 
-    def symmetric_difference(self, other: BaseMultiset[T]) -> BaseMultiset[T]:
+    def symmetric_difference(self, other: t.Iterable[T]) -> BaseMultiset[T]:
         other = self._as_multiset(other)
         result = self.__class__()
         _elements = result._elements
@@ -179,16 +179,12 @@ class BaseMultiset(t.AbstractSet[T]):
 
         return result
 
-    def __xor__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
+    def __xor__(self, other: t.Iterable[T]) -> BaseMultiset[T]:
         return self.symmetric_difference(other)
 
     __rxor__ = __xor__
 
-    def times(self, factor):
+    def times(self, factor: int) -> BaseMultiset[T]:
         if factor == 0:
             return self.__class__()
         if factor < 0:
@@ -197,135 +193,102 @@ class BaseMultiset(t.AbstractSet[T]):
         _elements = result._elements
         for element in _elements:
             _elements[element] *= factor
-        result._total *= factor
         return result
 
-    def __mul__(self, factor):
-        if not isinstance(factor, _int_type):
-            return NotImplemented
+    def __mul__(self, factor: int) -> BaseMultiset[T]:
         return self.times(factor)
 
     __rmul__ = __mul__
 
-    def _issubset(self, other, strict):
+    def _issubset(self, other: t.Iterable[T], strict: bool) -> bool:
         other = self._as_multiset(other)
-        self_len = self._total
-        other_len = len(other)
-        if self_len > other_len:
+        len_self = len(self)
+        len_other = len(other)
+
+        if len_self > len_other or strict and len_self == len_other:
             return False
-        if self_len == other_len and strict:
-            return False
-        return all(multiplicity <= other[element] for element, multiplicity in self.items())
+
+        return all(
+            multiplicity <= other[element]
+            for element, multiplicity in
+            self.items()
+        )
 
     def issubset(self, other):
         return self._issubset(other, False)
 
     def __le__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
         return self._issubset(other, False)
 
     def __lt__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
         return self._issubset(other, True)
 
-    def _issuperset(self, other, strict):
+    def _issuperset(self, other: t.Collection[T], strict: bool) -> bool:
         other = self._as_multiset(other)
-        other_len = len(other)
-        if len(self) < other_len:
-            return False
-        if len(self) == other_len and strict:
-            return False
-        for element, multiplicity in other.items():
-            if self[element] < multiplicity:
-                return False
-        return True
+        len_self = len(self)
+        len_other = len(other)
 
-    def issuperset(self, other):
+        if len_self < len_other or strict and len_self == len_other:
+            return False
+
+        return all(
+            multiplicity <= self._elements[element]
+            for element, multiplicity in
+            other.items()
+        )
+
+    def issuperset(self, other: t.Collection[T]) -> bool:
         return self._issuperset(other, False)
 
-    def __ge__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
+    def __ge__(self, other: t.Collection[T]) -> bool:
         return self._issuperset(other, False)
 
-    def __gt__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
+    def __gt__(self, other: t.Collection[T]) -> bool:
         return self._issuperset(other, True)
 
-    def __eq__(self, other):
+    def __eq__(self, other: t.Collection[T]) -> bool:
         if isinstance(other, BaseMultiset):
-            return self._total == other._total and self._elements == other._elements
-        if isinstance(other, (set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        if self._total != len(other):
-            return False
-        return self._issubset(other, False)
+            return self._elements == other._elements
+        return self._issubset(other, False) and len(self) == len(other)
 
-    def __ne__(self, other):
+    def __ne__(self, other: t.Collection[T]) -> bool:
         if isinstance(other, BaseMultiset):
-            return self._total != other._total or self._elements != other._elements
-        if isinstance(other, (set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        if self._total != len(other):
-            return True
-        return not self._issubset(other, False)
+            return self._elements != other._elements
+        return not self._issubset(other, False) and len(self) != len(other)
 
-    def get(self, element, default):
+    def get(self, element: T, default: t.Optional[V] = None) -> t.Union[T, V, None]:
         return self._elements.get(element, default)
 
     @classmethod
-    def from_elements(cls, elements, multiplicity):
+    def from_elements(cls, elements: t.Iterable[T], multiplicity: int) -> BaseMultiset[T]:
         return cls(dict.fromkeys(elements, multiplicity))
 
-    def copy(self):
+    def copy(self) -> BaseMultiset[T]:
         return self.__class__(self)
 
     __copy__ = copy
 
-    def items(self):
+    def items(self) -> t.Iterable[t.Tuple[T, int]]:
         return self._elements.items()
 
-    def distinct_elements(self):
+    def distinct_elements(self) -> t.KeysView[T]:
         return self._elements.keys()
 
-    def multiplicities(self):
+    def multiplicities(self) -> t.Iterable[int]:
         return self._elements.values()
 
     values = multiplicities
 
     @classmethod
-    def _as_multiset(cls, other):
+    def _as_multiset(cls, other: t.Iterable[T]) -> BaseMultiset[T]:
         if isinstance(other, BaseMultiset):
             return other
         return cls(other)
 
     @staticmethod
-    def _as_mapping(iterable):
+    def _as_mapping(iterable: t.Iterable[T]) -> t.Mapping[T, int]:
         if isinstance(iterable, BaseMultiset):
             return iterable._elements
-        if isinstance(iterable, dict):
-            return iterable
-        if isinstance(iterable, _all_basic_types):
-            pass  # create dictionary below
-        elif isinstance(iterable, Mapping):
-            return iterable
-        elif not isinstance(iterable, Iterable):
-            raise TypeError("'%s' object is not iterable" % type(iterable))
         mapping = dict()
         for element in iterable:
             if element in mapping:
@@ -335,108 +298,88 @@ class BaseMultiset(t.AbstractSet[T]):
         return mapping
 
     def __getstate__(self):
-        return self._total, self._elements
+        return self._elements
 
     def __setstate__(self, state):
-        self._total, self._elements = state
+        self._elements = state
 
-class Multiset(BaseMultiset):
+
+class Multiset(BaseMultiset[T]):
     __slots__ = ()
 
-    def __setitem__(self, element, multiplicity):
-        if not isinstance(multiplicity, _int_type):
-            raise TypeError('multiplicity must be an integer')
+    def __setitem__(self, element: T, multiplicity: int) -> None:
         _elements = self._elements
         if element in _elements:
-            old_multiplicity = _elements[element]
             if multiplicity > 0:
                 _elements[element] = multiplicity
-                self._total += multiplicity - old_multiplicity
             else:
                 del _elements[element]
-                self._total -= old_multiplicity
         elif multiplicity > 0:
             _elements[element] = multiplicity
-            self._total += multiplicity
 
-    def __delitem__(self, element):
-        _elements = self._elements
-        if element in _elements:
-            self._total -= _elements[element]
-            del _elements[element]
+    def __delitem__(self, element: T) -> None:
+        if element in self._elements:
+            del self._elements[element]
         else:
             raise KeyError("Could not delete {!r} from the multiset, because it is not in it.".format(element))
 
-    def update(self, *others):
-        _elements = self._elements
+    def update(self, *others: t.Iterable[T]) -> Multiset[T]:
         for other in map(self._as_mapping, others):
             for element, multiplicity in other.items():
                 self[element] += multiplicity
 
-    def union_update(self, *others):
+        return self
+
+    def union_update(self, *others: t.Iterable[T]) -> Multiset[T]:
         _elements = self._elements
-        _total = self._total
+
         for other in map(self._as_mapping, others):
             for element, multiplicity in other.items():
                 old_multiplicity = _elements.get(element, 0)
                 if multiplicity > old_multiplicity:
                     _elements[element] = multiplicity
-                    _total += multiplicity - old_multiplicity
-        self._total = _total
 
-    def __ior__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        self.union_update(other)
         return self
 
-    def intersection_update(self, *others):
+    def __ior__(self, other: t.Iterable[T]) -> Multiset[T]:
+        return self.union_update(other)
+
+    def intersection_update(self, *others: t.Iterable[T]) -> Multiset[T]:
         for other in map(self._as_mapping, others):
-            for element, current_count in list(self.items()):
+            for element, current_count in self.items():
                 multiplicity = other.get(element, 0)
                 if multiplicity < current_count:
                     self[element] = multiplicity
 
-    def __iand__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        self.intersection_update(other)
         return self
 
-    def difference_update(self, *others):
+    def __iand__(self, other: t.Iterable[T]) -> Multiset[T]:
+        return self.intersection_update(other)
+
+    def difference_update(self, *others: t.Iterable[T]) -> Multiset[T]:
         for other in map(self._as_multiset, others):
             for element, multiplicity in other.items():
                 self.discard(element, multiplicity)
 
-    def __isub__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        self.difference_update(other)
         return self
 
-    def symmetric_difference_update(self, other):
+    def __isub__(self, other: t.Iterable[T]) -> Multiset[T]:
+        return self.difference_update(other)
+
+    def symmetric_difference_update(self, other: t.Iterable[T]) -> Multiset[T]:
         other = self._as_multiset(other)
-        elements = set(self.distinct_elements()) | set(other.distinct_elements())
+        elements = self.distinct_elements() | other.distinct_elements()
         for element in elements:
             multiplicity = self[element]
             other_count = other[element]
             self[element] = (multiplicity - other_count if multiplicity > other_count else other_count - multiplicity)
 
-    def __ixor__(self, other):
-        if isinstance(other, (BaseMultiset, set, frozenset)):
-            pass
-        elif not isinstance(other, Set):
-            return NotImplemented
-        self.symmetric_difference_update(other)
         return self
 
-    def times_update(self, factor):
+    def __ixor__(self, other: t.Iterable[T]) -> Multiset[T]:
+        return self.symmetric_difference_update(other)
+
+    def times_update(self, factor: int) -> Multiset[T]:
         if factor < 0:
             raise ValueError("The factor must not be negative.")
         elif factor == 0:
@@ -445,64 +388,58 @@ class Multiset(BaseMultiset):
             _elements = self._elements
             for element in _elements:
                 _elements[element] *= factor
-            self._total *= factor
 
-    def __imul__(self, factor):
-        if not isinstance(factor, _int_type):
-            raise TypeError("factor must be an integer.")
-        self.times_update(factor)
         return self
 
-    def add(self, element, multiplicity=1):
+    def __imul__(self, factor: int) -> Multiset[T]:
+        return self.times_update(factor)
+
+    def add(self, element: T, multiplicity=1) -> Multiset[T]:
         if multiplicity < 1:
             raise ValueError("Multiplicity must be positive")
         self._elements[element] += multiplicity
-        self._total += multiplicity
 
-    def remove(self, element, multiplicity=None):
+        return self
+
+    def remove(self, element: T, multiplicity: t.Optional[int] = None) -> int:
         _elements = self._elements
         if element not in _elements:
             raise KeyError
         old_multiplicity = _elements.get(element, 0)
         if multiplicity is None or multiplicity >= old_multiplicity:
             del _elements[element]
-            self._total -= old_multiplicity
         elif multiplicity < 0:
             raise ValueError("Multiplicity must be not be negative")
         elif multiplicity > 0:
             _elements[element] -= multiplicity
-            self._total -= multiplicity
         return old_multiplicity
 
-    def discard(self, element, multiplicity=None):
+    def discard(self, element: T, multiplicity: t.Optional[int] = None) -> int:
         _elements = self._elements
         if element in _elements:
             old_multiplicity = _elements[element]
             if multiplicity is None or multiplicity >= old_multiplicity:
                 del _elements[element]
-                self._total -= old_multiplicity
             elif multiplicity < 0:
                 raise ValueError("Multiplicity must not be negative")
             elif multiplicity > 0:
                 _elements[element] -= multiplicity
-                self._total -= multiplicity
             return old_multiplicity
         else:
             return 0
 
-    def pop(self, element, default):
+    def pop(self, element: T, default: t.Optional[V] = None) -> t.Union[T, V, None]:
         return self._elements.pop(element, default)
 
-    def setdefault(self, element, default):
-        return self._elements.setdefault(element, default)
-
-    def clear(self):
+    def clear(self) -> BaseMultiset[T]:
         self._elements.clear()
-        self._total = 0
+        return self
 
 
 class FrozenMultiset(BaseMultiset):
-    __slots__ = ()
+    __slots__ = ('_hash',)
 
-    def __hash__(self):
-        return hash(tuple(sorted(self._elements.items())))
+    def __hash__(self) -> int:
+        if not hasattr(self, '_hash') or self._hash is None:
+            self._hash = hash(frozenset(self._elements.items()))
+        return self._hash
