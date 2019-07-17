@@ -20,7 +20,7 @@ __all__ = ['BaseMultiset', 'Multiset', 'FrozenMultiset']
 class BaseMultiset(t.AbstractSet[T]):
     __slots__ = ('_elements',)
 
-    def __init__(self, iterable: t.Optional[t.Iterable[T]]=None) -> None:
+    def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
         if isinstance(iterable, BaseMultiset):
             self._elements = iterable._elements.copy()
             return
@@ -38,7 +38,7 @@ class BaseMultiset(t.AbstractSet[T]):
                 for element in iterable:
                     _elements[element] += 1
 
-    def __new__(cls, iterable=None):
+    def __new__(cls, iterable: t.Optional[t.Iterable[T]]=None):
         if cls is BaseMultiset:
             raise TypeError("Cannot instantiate BaseMultiset directly, use either Multiset or FrozenMultiset.")
         return super(BaseMultiset, cls).__new__(cls)
@@ -50,7 +50,7 @@ class BaseMultiset(t.AbstractSet[T]):
         return self._elements.__getitem__(element)
 
     def __str__(self) -> str:
-        return '({})'.format(
+        return '{{{}}}'.format(
             ', '.join(
                 map(str, self)
             ),
@@ -60,8 +60,8 @@ class BaseMultiset(t.AbstractSet[T]):
         return '{}({{{}}})'.format(
             self.__class__.__name__,
             ', '.join(
-                '{}: {}'.format(item, multiplicity)
-                for item, multiplicity in
+                '{}: {}'.format(*items)
+                for items in
                 self._elements.items()
             ),
         )
@@ -80,16 +80,14 @@ class BaseMultiset(t.AbstractSet[T]):
             )
         )
 
-    def isdisjoint(self, other) -> bool:
-        if not isinstance(other, t.Container):
-            other = self._as_multiset(other)
+    def isdisjoint(self, other: t.Counter[T]) -> bool:
         return all(element not in other for element in self._elements.keys())
 
     def difference(self, *others: t.Iterable[T]) -> BaseMultiset[T]:
         result = self.__copy__()
         _elements = result._elements
 
-        for other in map(self._as_multiset, others):
+        for other in map(self._as_mapping, others):
             for element, multiplicity in other.items():
                 if element in _elements:
                     new_multiplicity = _elements[element] - multiplicity
@@ -256,7 +254,7 @@ class BaseMultiset(t.AbstractSet[T]):
             return self._elements != other._elements
         return not self._issubset(other, False) and len(self) != len(other)
 
-    def get(self, element: T, default: t.Optional[V] = None) -> t.Union[T, V, None]:
+    def get(self, element: T, default: t.Optional[V] = None) -> t.Union[int, V, None]:
         return self._elements.get(element, default)
 
     @classmethod
@@ -277,7 +275,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def multiplicities(self) -> t.Iterable[int]:
         return self._elements.values()
 
-    values = multiplicities
+    values = multiplicities #type: t.Callable[[], t.ValuesView[T]]
 
     @classmethod
     def _as_multiset(cls, other: t.Iterable[T]) -> BaseMultiset[T]:
@@ -285,16 +283,18 @@ class BaseMultiset(t.AbstractSet[T]):
             return other
         return cls(other)
 
-    @staticmethod
-    def _as_mapping(iterable: t.Iterable[T]) -> t.Mapping[T, int]:
+    @classmethod
+    def _as_mapping(cls, iterable: t.Iterable[T]) -> t.Mapping[T, int]:
+        print('as mapping')
         if isinstance(iterable, BaseMultiset):
             return iterable._elements
-        mapping = dict()
+
+        if isinstance(iterable, t.Mapping):
+            return iterable
+
+        mapping = defaultdict(int)
         for element in iterable:
-            if element in mapping:
-                mapping[element] += 1
-            else:
-                mapping[element] = 1
+            mapping[element] += 1
         return mapping
 
     def __getstate__(self):
@@ -428,7 +428,7 @@ class Multiset(BaseMultiset[T]):
         else:
             return 0
 
-    def pop(self, element: T, default: t.Optional[V] = None) -> t.Union[T, V, None]:
+    def pop(self, element: T, default: t.Optional[V] = None) -> t.Union[int, V, None]:
         return self._elements.pop(element, default)
 
     def clear(self) -> BaseMultiset[T]:
