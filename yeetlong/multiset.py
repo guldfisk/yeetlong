@@ -246,7 +246,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def __gt__(self, other: t.Collection[T]) -> bool:
         return self._issuperset(other, True)
 
-    def __eq__(self, other: t.Collection[T]) -> bool:
+    def __eq__(self, other: t.AbstractSet[T]) -> bool:
         if isinstance(other, BaseMultiset):
             return self._elements == other._elements
         return self._issubset(other, False) and len(self) == len(other)
