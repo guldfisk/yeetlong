@@ -285,7 +285,6 @@ class BaseMultiset(t.AbstractSet[T]):
 
     @classmethod
     def _as_mapping(cls, iterable: t.Iterable[T]) -> t.Mapping[T, int]:
-        print('as mapping')
         if isinstance(iterable, BaseMultiset):
             return iterable._elements
 
