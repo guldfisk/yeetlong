@@ -16,7 +16,7 @@ class BaseCounter(t.Mapping[T, int]):
             self._elements = mapping._elements.copy()
             return
 
-        self._elements = _elements = defaultdict(int)  # type: t.DefaultDict[T, int]
+        self._elements = defaultdict(int)  # type: t.DefaultDict[T, int]
 
         if mapping is not None:
             self._elements.update(mapping)

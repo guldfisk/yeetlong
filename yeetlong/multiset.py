@@ -43,10 +43,10 @@ class BaseMultiset(t.AbstractSet[T]):
             raise TypeError("Cannot instantiate BaseMultiset directly, use either Multiset or FrozenMultiset.")
         return super(BaseMultiset, cls).__new__(cls)
 
-    def __contains__(self, element) -> bool:
+    def __contains__(self, element: T) -> bool:
         return element in self._elements
 
-    def __getitem__(self, element) -> int:
+    def __getitem__(self, element: T) -> int:
         return self._elements.__getitem__(element)
 
     def __str__(self) -> str:
@@ -274,6 +274,9 @@ class BaseMultiset(t.AbstractSet[T]):
 
     def multiplicities(self) -> t.Iterable[int]:
         return self._elements.values()
+
+    def elements(self) -> t.Mapping[T, int]:
+        return self._elements
 
     values = multiplicities #type: t.Callable[[], t.ValuesView[T]]
 
