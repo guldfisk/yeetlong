@@ -66,12 +66,11 @@ class BaseCounter(t.Mapping[T, int]):
 
         for other in map(self._as_counter, others):
             for element, multiplicity in other.items():
-                if element in _elements:
-                    new_multiplicity = _elements[element] - multiplicity
-                    if new_multiplicity == 0:
-                        del _elements[element]
-                    else:
-                        _elements[element] = new_multiplicity
+                new_multiplicity = _elements[element] - multiplicity
+                if new_multiplicity == 0:
+                    del _elements[element]
+                else:
+                    _elements[element] = new_multiplicity
 
         return result
 
