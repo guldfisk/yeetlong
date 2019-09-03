@@ -136,7 +136,7 @@ class BaseCounter(t.Mapping[T, int]):
 
     def positive(self) -> t.Iterator[t.Tuple[T, int]]:
         return (
-            element, multiplicity
+            (element, multiplicity)
             for element, multiplicity in
             self._elements.items()
             if multiplicity > 0
@@ -144,7 +144,7 @@ class BaseCounter(t.Mapping[T, int]):
 
     def negative(self) -> t.Iterator[t.Tuple[T, int]]:
         return (
-            element, multiplicity
+            (element, multiplicity)
             for element, multiplicity in
             self._elements.items()
             if multiplicity < 0
