@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing as t
 from collections import defaultdict
 
-
 T = t.TypeVar('T')
 V = t.TypeVar('V')
 
@@ -20,7 +19,7 @@ class BaseCounter(t.Mapping[T, int]):
 
         if mapping is not None:
             self._elements.update(mapping)
-                    
+
     def __new__(cls, mapping: t.Optional[t.Mapping[T, int]] = None):
         if cls is BaseCounter:
             raise TypeError("Cannot instantiate BaseCounter directly, use either Counter or FrozenCounter.")
@@ -111,6 +110,9 @@ class BaseCounter(t.Mapping[T, int]):
 
     __rmul__ = __mul__
 
+    def __invert__(self):
+        return self.times(-1)
+
     def get(self, element: T, default: t.Optional[V] = None) -> t.Union[int, V, None]:
         return self._elements.get(element, default)
 
@@ -132,7 +134,23 @@ class BaseCounter(t.Mapping[T, int]):
     def multiplicities(self) -> t.ValuesView[int]:
         return self._elements.values()
 
-    values = multiplicities #type: t.Callable[[], t.ValuesView[T]]
+    def positive(self) -> t.Iterator[t.Tuple[T, int]]:
+        return (
+            element, multiplicity
+            for element, multiplicity in
+            self._elements
+            if multiplicity > 0
+        )
+
+    def negative(self) -> t.Iterator[t.Tuple[T, int]]:
+        return (
+            element, multiplicity
+            for element, multiplicity in
+            self._elements
+            if multiplicity < 0
+        )
+
+    values = multiplicities  # type: t.Callable[[], t.ValuesView[T]]
 
     @classmethod
     def _as_counter(cls, other: t.Mapping[T, int]) -> BaseCounter[T]:
@@ -151,8 +169,8 @@ class BaseCounter(t.Mapping[T, int]):
 
     def __setstate__(self, state):
         self._elements = state
-        
-        
+
+
 class Counter(BaseCounter[T]):
     __slots__ = ()
 
@@ -174,7 +192,7 @@ class Counter(BaseCounter[T]):
 
     def update(self, *others: t.Mapping[T, int]) -> Counter[T]:
         _elements = self._elements
-        
+
         for other in map(self._as_mapping, others):
             for element, multiplicity in other.items():
                 _elements[element] += multiplicity
@@ -213,8 +231,8 @@ class Counter(BaseCounter[T]):
     def clear(self) -> BaseCounter[T]:
         self._elements.clear()
         return self
-    
-    
+
+
 class FrozenCounter(BaseCounter[T]):
     __slots__ = ('_hash',)
 
