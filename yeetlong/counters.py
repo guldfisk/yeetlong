@@ -138,7 +138,7 @@ class BaseCounter(t.Mapping[T, int]):
         return (
             element, multiplicity
             for element, multiplicity in
-            self._elements
+            self._elements.items()
             if multiplicity > 0
         )
 
@@ -146,7 +146,7 @@ class BaseCounter(t.Mapping[T, int]):
         return (
             element, multiplicity
             for element, multiplicity in
-            self._elements
+            self._elements.items()
             if multiplicity < 0
         )
 
