@@ -9,7 +9,7 @@ import typing as t
 import itertools
 from collections import defaultdict
 
-from yeetlong.maps import OrderedDefaultDict
+from yeetlong.maps import OrderedDefaultDict, IndexedOrderedDefaultDict
 
 
 T = t.TypeVar('T')
@@ -19,10 +19,13 @@ V = t.TypeVar('V')
 __all__ = [
     'BaseMultiset',
     'BaseOrderedMultiset',
+    'BaseIndexedOrderedMultiset',
     'Multiset',
     'OrderedMultiset',
+    'IndexedOrderedMultiset',
     'FrozenMultiset',
     'FrozenOrderedMultiset',
+    'FrozenIndexedOrderedMultiset',
 ]
 
 
@@ -46,11 +49,6 @@ class BaseMultiset(t.AbstractSet[T]):
             else:
                 for element in iterable:
                     self._elements[element] += 1
-
-    def __new__(cls, iterable: t.Optional[t.Iterable[T]] = None):
-        if cls is BaseMultiset:
-            raise TypeError("Cannot instantiate BaseMultiset directly, use either Multiset or FrozenMultiset.")
-        return super(BaseMultiset, cls).__new__(cls)
 
     def __contains__(self, element: T) -> bool:
         return element in self._elements
@@ -316,6 +314,7 @@ class BaseMultiset(t.AbstractSet[T]):
 
 
 class BaseOrderedMultiset(BaseMultiset[T]):
+    __slots__ = ()
     
     def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
         if isinstance(iterable, BaseMultiset):
@@ -334,6 +333,34 @@ class BaseOrderedMultiset(BaseMultiset[T]):
             else:
                 for element in iterable:
                     self._elements[element] += 1
+
+
+class BaseIndexedOrderedMultiset(BaseOrderedMultiset[T]):
+    __slots__ = ()
+
+    def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
+        if isinstance(iterable, BaseMultiset):
+            self._elements = iterable._elements.copy()
+            return
+
+        self._elements: IndexedOrderedDefaultDict[T, int] = IndexedOrderedDefaultDict(int)
+
+        if iterable is not None:
+
+            if isinstance(iterable, t.Mapping):
+                for element, multiplicity in iterable.items():
+                    if multiplicity > 0:
+                        self._elements[element] = multiplicity
+
+            else:
+                for element in iterable:
+                    self._elements[element] += 1
+
+    def get_value_at_index(self, index: int) -> T:
+        return self._elements.get_key_by_index(index)
+
+    def get_multiplicity_at_index(self, index: int) -> int:
+        return self._elements.get_value_by_index(index)
 
 
 class Multiset(BaseMultiset[T]):
@@ -470,6 +497,10 @@ class Multiset(BaseMultiset[T]):
 
 class OrderedMultiset(Multiset[T], BaseOrderedMultiset[T]):
     __slots__ = ()
+
+
+class IndexedOrderedMultiset(Multiset[T], BaseIndexedOrderedMultiset[T]):
+    __slots__ = ()
     
 
 class FrozenMultiset(BaseMultiset[T]):
@@ -482,4 +513,8 @@ class FrozenMultiset(BaseMultiset[T]):
 
 
 class FrozenOrderedMultiset(FrozenMultiset[T], BaseOrderedMultiset[T]):
+    __slots__ = ()
+
+
+class FrozenIndexedOrderedMultiset(FrozenMultiset[T], BaseIndexedOrderedMultiset[T]):
     __slots__ = ()

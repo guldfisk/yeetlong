@@ -2,30 +2,147 @@ from __future__ import annotations
 
 import typing as t
 
+import operator
 import copy
-
-from collections import OrderedDict
+import collections
 
 
 K = t.TypeVar('K')
 V = t.TypeVar('V')
 
 
-class OrderedDefaultDict(OrderedDict, t.Generic[K, V]):
+__all__ = [
+    'IndexedOrderedDict',
+    'OrderedDefaultDict',
+    'IndexedOrderedDefaultDict',
+]
+
+
+class IndexedOrderedDict(t.MutableMapping[K, V]):
+    __slots__ = ('_list', '_dict')
+
+    def __init__(self, initial: t.Iterable[t.Tuple[K, V]] = ()):
+        self._dict = {}
+        self._list = []
+        self._update(initial)
+
+    def __setitem__(self, key: K, value: V) -> None:
+        if key not in self:
+            self._list.append(key)
+        self._dict.__setitem__(key, value)
+
+    def __delitem__(self, key: K) -> None:
+        self._dict.__delitem__(key)
+        self._list.remove(key)
+
+    def __getitem__(self, key: K) -> V:
+        return self._dict.__getitem__(key)
+
+    def __len__(self) -> int:
+        return len(self._list)
+
+    def __iter__(self):
+        return self._list.__iter__()
+
+    def __reversed__(self):
+        return self._list.__reversed__()
+
+    def clear(self):
+        self._list[:] = []
+        self._dict.clear()
+
+    def popitem(self, last=True):
+        key = self._list.pop() if last else self._list.pop(0)
+        value = self._dict.pop(key)
+        return key, value
+
+    def move_to_end(self, key, last=True):
+        self._list.remove(key)
+        if last:
+            self._list.append(key)
+        else:
+            self._list.insert(0, key)
+            
+    def get_key_by_index(self, index: int) -> K:
+        return self._list[index]
     
-    def __init__(self, default_factory = t.Callable[[], V], *args: t.Tuple[K, V], **kwargs: t.Mapping[K, V]):
-        OrderedDict.__init__(self, *args, **kwargs)
+    def get_value_by_index(self, index: int) -> V:
+        return self._dict[self._list[index]]
+
+    update = _update = collections.MutableMapping.update
+    __ne__ = collections.MutableMapping.__ne__
+
+    _marker = object()
+
+    def pop(self, key, default=_marker):
+        if key in self:
+            result = self[key]
+            del self[key]
+            return result
+        if default is self._marker:
+            raise KeyError(key)
+        return default
+
+    def setdefault(self, key: K, default: t.Optional[V] = None) -> t.Optional[V]:
+        if key in self:
+            return self[key]
+        self[key] = default
+        return default
+
+    def __repr__(self) -> str:
+        return '{}({})'.format(
+            self.__class__.__name__,
+            list(self.items()),
+        )
+
+    def __reduce__(self):
+        inst_dict = {'_map': self._list, '_dict': self._dict}
+        return self.__class__, (), inst_dict or None, None, iter(self.items())
+
+    def copy(self) -> IndexedOrderedDict:
+        return self.__class__(self)
+
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        self = cls()
+        for key in iterable:
+            self[key] = value
+        return self
+
+    def __eq__(self, other: t.Mapping) -> bool:
+        if isinstance(other, collections.OrderedDict) or isinstance(other, IndexedOrderedDict):
+            return self._dict.__eq__(other) and all(map(operator.eq, self, other))
+        return self._dict.__eq__(other)
+
+
+class OrderedDefaultDict(t.MutableMapping[K, V]):
+    __slots__ = ('_dict', '_default_factory')
+    
+    def __init__(self, default_factory: t.Callable[[], V], initial: t.Iterable[t.Tuple[K, V]] = ()):
         self._default_factory = default_factory
+        self._dict = collections.OrderedDict(initial)
 
     def __getitem__(self, key: K) -> V:
         try:
-            return OrderedDict.__getitem__(self, key)
+            return self._dict.__getitem__(key)
         except KeyError:
             return self.__missing__(key)
 
     def __missing__(self, key: K) -> V:
-        self[key] = value = self._default_factory()
+        self._dict[key] = value = self._default_factory()
         return value
+
+    def __len__(self) -> int:
+        return self._dict.__len__()
+
+    def __iter__(self) -> t.Iterator[V]:
+        return self._dict.__iter__()
+
+    def __setitem__(self, key: K, value: V) -> None:
+        return self._dict.__setitem__(key, value)
+
+    def __delitem__(self, key: K) -> None:
+        self._dict.__delitem__(key)
 
     def __reduce__(self):
         return type(self), self._default_factory, None, None, self.items()
@@ -43,5 +160,18 @@ class OrderedDefaultDict(OrderedDict, t.Generic[K, V]):
         return '{}({}, {})'.format(
             self.__class__.__name__,
             self._default_factory,
-            self.items(),
+            list(self._dict.items()),
         )
+
+
+class IndexedOrderedDefaultDict(OrderedDefaultDict):
+
+    def __init__(self, default_factory: t.Callable[[], V], initial: t.Iterable[t.Tuple[K, V]] = ()):
+        self._default_factory = default_factory
+        self._dict = IndexedOrderedDict(initial)
+
+    def get_key_by_index(self, index: int) -> K:
+        return self._dict.get_key_by_index(index)
+
+    def get_value_by_index(self, index: int) -> V:
+        return self._dict.get_value_by_index(index)
