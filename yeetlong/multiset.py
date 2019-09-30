@@ -9,12 +9,21 @@ import typing as t
 import itertools
 from collections import defaultdict
 
+from yeetlong.maps import OrderedDefaultDict
+
 
 T = t.TypeVar('T')
 V = t.TypeVar('V')
 
 
-__all__ = ['BaseMultiset', 'Multiset', 'FrozenMultiset']
+__all__ = [
+    'BaseMultiset',
+    'BaseOrderedMultiset',
+    'Multiset',
+    'OrderedMultiset',
+    'FrozenMultiset',
+    'FrozenOrderedMultiset',
+]
 
 
 class BaseMultiset(t.AbstractSet[T]):
@@ -25,20 +34,20 @@ class BaseMultiset(t.AbstractSet[T]):
             self._elements = iterable._elements.copy()
             return
 
-        self._elements = _elements = defaultdict(int) #type: t.DefaultDict[T, int]
+        self._elements: t.DefaultDict[T, int] = defaultdict(int)
 
         if iterable is not None:
 
             if isinstance(iterable, t.Mapping):
                 for element, multiplicity in iterable.items():
                     if multiplicity > 0:
-                        _elements[element] = multiplicity
+                        self._elements[element] = multiplicity
 
             else:
                 for element in iterable:
-                    _elements[element] += 1
+                    self._elements[element] += 1
 
-    def __new__(cls, iterable: t.Optional[t.Iterable[T]]=None):
+    def __new__(cls, iterable: t.Optional[t.Iterable[T]] = None):
         if cls is BaseMultiset:
             raise TypeError("Cannot instantiate BaseMultiset directly, use either Multiset or FrozenMultiset.")
         return super(BaseMultiset, cls).__new__(cls)
@@ -278,7 +287,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def elements(self) -> t.Mapping[T, int]:
         return self._elements
 
-    values = multiplicities #type: t.Callable[[], t.ValuesView[T]]
+    values = multiplicities  # type: t.Callable[[], t.ValuesView[T]]
 
     @classmethod
     def _as_multiset(cls, other: t.Iterable[T]) -> BaseMultiset[T]:
@@ -304,6 +313,27 @@ class BaseMultiset(t.AbstractSet[T]):
 
     def __setstate__(self, state):
         self._elements = state
+
+
+class BaseOrderedMultiset(BaseMultiset[T]):
+    
+    def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
+        if isinstance(iterable, BaseMultiset):
+            self._elements = iterable._elements.copy()
+            return
+
+        self._elements: OrderedDefaultDict[T, int] = OrderedDefaultDict(int)
+
+        if iterable is not None:
+
+            if isinstance(iterable, t.Mapping):
+                for element, multiplicity in iterable.items():
+                    if multiplicity > 0:
+                        self._elements[element] = multiplicity
+
+            else:
+                for element in iterable:
+                    self._elements[element] += 1
 
 
 class Multiset(BaseMultiset[T]):
@@ -396,7 +426,7 @@ class Multiset(BaseMultiset[T]):
     def __imul__(self, factor: int) -> Multiset[T]:
         return self.times_update(factor)
 
-    def add(self, element: T, multiplicity=1) -> Multiset[T]:
+    def add(self, element: T, multiplicity = 1) -> Multiset[T]:
         if multiplicity < 1:
             raise ValueError("Multiplicity must be positive")
         self._elements[element] += multiplicity
@@ -438,6 +468,10 @@ class Multiset(BaseMultiset[T]):
         return self
 
 
+class OrderedMultiset(Multiset[T], BaseOrderedMultiset[T]):
+    __slots__ = ()
+    
+
 class FrozenMultiset(BaseMultiset[T]):
     __slots__ = ('_hash',)
 
@@ -445,3 +479,7 @@ class FrozenMultiset(BaseMultiset[T]):
         if not hasattr(self, '_hash') or self._hash is None:
             self._hash = hash(frozenset(self._elements.items()))
         return self._hash
+
+
+class FrozenOrderedMultiset(FrozenMultiset[T], BaseOrderedMultiset[T]):
+    __slots__ = ()
