@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import typing as t
 import itertools
+import copy
+
 from collections import defaultdict
 
 from yeetlong.maps import OrderedDefaultDict, IndexedOrderedDefaultDict
@@ -33,7 +35,7 @@ class BaseMultiset(t.AbstractSet[T]):
     __slots__ = ('_elements',)
 
     def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
-        if isinstance(iterable, BaseMultiset):
+        if isinstance(iterable, self.__class__):
             self._elements = iterable._elements.copy()
             return
 
@@ -268,10 +270,8 @@ class BaseMultiset(t.AbstractSet[T]):
     def from_elements(cls, elements: t.Iterable[T], multiplicity: int) -> BaseMultiset[T]:
         return cls(dict.fromkeys(elements, multiplicity))
 
-    def copy(self) -> BaseMultiset[T]:
+    def __copy__(self) -> BaseMultiset[T]:
         return self.__class__(self)
-
-    __copy__ = copy
 
     def items(self) -> t.Iterable[t.Tuple[T, int]]:
         return self._elements.items()
@@ -317,8 +317,8 @@ class BaseOrderedMultiset(BaseMultiset[T]):
     __slots__ = ()
     
     def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
-        if isinstance(iterable, BaseMultiset):
-            self._elements = iterable._elements.copy()
+        if isinstance(iterable, __class__):
+            self._elements = copy.copy(iterable._elements)
             return
 
         self._elements: OrderedDefaultDict[T, int] = OrderedDefaultDict(int)
@@ -339,8 +339,8 @@ class BaseIndexedOrderedMultiset(BaseOrderedMultiset[T]):
     __slots__ = ()
 
     def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
-        if isinstance(iterable, BaseMultiset):
-            self._elements = iterable._elements.copy()
+        if isinstance(iterable, __class__):
+            self._elements = copy.copy(iterable._elements)
             return
 
         self._elements: IndexedOrderedDefaultDict[T, int] = IndexedOrderedDefaultDict(int)
@@ -361,6 +361,9 @@ class BaseIndexedOrderedMultiset(BaseOrderedMultiset[T]):
 
     def get_multiplicity_at_index(self, index: int) -> int:
         return self._elements.get_value_by_index(index)
+    
+    def get_index_of_item(self, item: T) -> int:
+        return self._elements.get_index_of_key(item)
 
 
 class Multiset(BaseMultiset[T]):

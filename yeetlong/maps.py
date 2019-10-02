@@ -24,10 +24,10 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
     def __init__(self, initial: t.Iterable[t.Tuple[K, V]] = ()):
         self._dict = {}
         self._list = []
-        self._update(initial)
+        self.update(initial)
 
     def __setitem__(self, key: K, value: V) -> None:
-        if key not in self:
+        if key not in self._list:
             self._list.append(key)
         self._dict.__setitem__(key, value)
 
@@ -37,6 +37,15 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
 
     def __getitem__(self, key: K) -> V:
         return self._dict.__getitem__(key)
+
+    def keys(self) -> t.AbstractSet[K]:
+        return self._dict.keys()
+
+    def values(self) -> t.ValuesView[V]:
+        return self._dict.values()
+
+    def items(self) -> t.AbstractSet[t.Tuple[K, V]]:
+        return self._dict.items()
 
     def __len__(self) -> int:
         return len(self._list)
@@ -68,9 +77,9 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
     
     def get_value_by_index(self, index: int) -> V:
         return self._dict[self._list[index]]
-
-    update = _update = collections.MutableMapping.update
-    __ne__ = collections.MutableMapping.__ne__
+    
+    def get_index_of_key(self, key: K) -> int:
+        return self._list.index(key)
 
     _marker = object()
 
@@ -102,13 +111,6 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
     def copy(self) -> IndexedOrderedDict:
         return self.__class__(self)
 
-    @classmethod
-    def fromkeys(cls, iterable, value=None):
-        self = cls()
-        for key in iterable:
-            self[key] = value
-        return self
-
     def __eq__(self, other: t.Mapping) -> bool:
         if isinstance(other, collections.OrderedDict) or isinstance(other, IndexedOrderedDict):
             return self._dict.__eq__(other) and all(map(operator.eq, self, other))
@@ -131,6 +133,15 @@ class OrderedDefaultDict(t.MutableMapping[K, V]):
     def __missing__(self, key: K) -> V:
         self._dict[key] = value = self._default_factory()
         return value
+
+    def keys(self) -> t.AbstractSet[K]:
+        return self._dict.keys()
+
+    def values(self) -> t.ValuesView[V]:
+        return self._dict.values()
+
+    def items(self) -> t.AbstractSet[t.Tuple[K, V]]:
+        return self._dict.items()
 
     def __len__(self) -> int:
         return self._dict.__len__()
@@ -175,3 +186,6 @@ class IndexedOrderedDefaultDict(OrderedDefaultDict):
 
     def get_value_by_index(self, index: int) -> V:
         return self._dict.get_value_by_index(index)
+    
+    def get_index_of_key(self, key: K) -> int:
+        return self._dict.get_index_of_key(key)
