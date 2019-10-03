@@ -3,9 +3,7 @@ from __future__ import annotations
 import typing as t
 
 import operator
-import copy
 import collections
-
 
 K = t.TypeVar('K')
 V = t.TypeVar('V')
@@ -117,75 +115,41 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
         return self._dict.__eq__(other)
 
 
-class OrderedDefaultDict(t.MutableMapping[K, V]):
-    __slots__ = ('_dict', '_default_factory')
-    
-    def __init__(self, default_factory: t.Callable[[], V], initial: t.Iterable[t.Tuple[K, V]] = ()):
+class DefaultMixin(t.Generic[V]):
+
+    def __init__(self, default_factory: t.Callable[[], V]):
         self._default_factory = default_factory
-        self._dict = collections.OrderedDict(initial)
 
     def __getitem__(self, key: K) -> V:
         try:
-            return self._dict.__getitem__(key)
+            return super().__getitem__(key)
         except KeyError:
             return self.__missing__(key)
 
     def __missing__(self, key: K) -> V:
-        self._dict[key] = value = self._default_factory()
-        return value
-
-    def keys(self) -> t.AbstractSet[K]:
-        return self._dict.keys()
-
-    def values(self) -> t.ValuesView[V]:
-        return self._dict.values()
-
-    def items(self) -> t.AbstractSet[t.Tuple[K, V]]:
-        return self._dict.items()
-
-    def __len__(self) -> int:
-        return self._dict.__len__()
-
-    def __iter__(self) -> t.Iterator[V]:
-        return self._dict.__iter__()
-
-    def __setitem__(self, key: K, value: V) -> None:
-        return self._dict.__setitem__(key, value)
-
-    def __delitem__(self, key: K) -> None:
-        self._dict.__delitem__(key)
-
-    def __reduce__(self):
-        return type(self), self._default_factory, None, None, self.items()
-
-    def __copy__(self):
-        return type(self)(self._default_factory, self)
-
-    def __deepcopy__(self, memo) -> OrderedDefaultDict:
-        return type(self)(
-            self._default_factory,
-            copy.deepcopy(self.items())
-        )
-
+        v = self._default_factory()
+        super().__setitem__(key, v)
+        return v
+    
     def __repr__(self) -> str:
         return '{}({}, {})'.format(
             self.__class__.__name__,
             self._default_factory,
-            list(self._dict.items()),
+            list(self.items()),
         )
+    
 
-
-class IndexedOrderedDefaultDict(OrderedDefaultDict):
+class OrderedDefaultDict(DefaultMixin, collections.OrderedDict):
+    __slots__ = ()
 
     def __init__(self, default_factory: t.Callable[[], V], initial: t.Iterable[t.Tuple[K, V]] = ()):
-        self._default_factory = default_factory
-        self._dict = IndexedOrderedDict(initial)
+        collections.OrderedDict.__init__(self, initial)
+        DefaultMixin.__init__(self, default_factory)
 
-    def get_key_by_index(self, index: int) -> K:
-        return self._dict.get_key_by_index(index)
 
-    def get_value_by_index(self, index: int) -> V:
-        return self._dict.get_value_by_index(index)
-    
-    def get_index_of_key(self, key: K) -> int:
-        return self._dict.get_index_of_key(key)
+class IndexedOrderedDefaultDict(DefaultMixin, IndexedOrderedDict):
+    __slots__ = ()
+
+    def __init__(self, default_factory: t.Callable[[], V], initial: t.Iterable[t.Tuple[K, V]] = ()):
+        IndexedOrderedDict.__init__(self, initial)
+        DefaultMixin.__init__(self, default_factory)
