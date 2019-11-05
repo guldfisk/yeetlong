@@ -1,6 +1,7 @@
 from setuptools import setup
 import os
 
+
 def package_files(directory):
     paths = []
     for path, directories, file_names in os.walk(directory):
@@ -8,7 +9,9 @@ def package_files(directory):
             paths.append(os.path.join('..', path, filename))
     return paths
 
+
 extra_files = package_files('yeetlong')
+
 
 setup(
     name='yeetlong',

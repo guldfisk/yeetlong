@@ -56,7 +56,10 @@ class BaseMultiset(t.AbstractSet[T]):
         return element in self._elements
 
     def __getitem__(self, element: T) -> int:
-        return self._elements.__getitem__(element)
+        result = self._elements.get(element)
+        if result is None:
+            raise IndexError()
+        return result
 
     def __str__(self) -> str:
         return '{{{}}}'.format(
