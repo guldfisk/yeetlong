@@ -219,7 +219,7 @@ class BaseMultiset(t.AbstractSet[T]):
             return False
 
         return all(
-            multiplicity <= other[element]
+            multiplicity <= other.get(element, 0)
             for element, multiplicity in
             self.items()
         )
@@ -242,7 +242,7 @@ class BaseMultiset(t.AbstractSet[T]):
             return False
 
         return all(
-            multiplicity <= self._elements[element]
+            multiplicity <= self._elements.get(element, 0)
             for element, multiplicity in
             other.items()
         )
