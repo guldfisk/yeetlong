@@ -391,7 +391,7 @@ class Multiset(BaseMultiset[T]):
     def update(self, *others: t.Iterable[T]) -> Multiset[T]:
         for other in map(self._as_mapping, others):
             for element, multiplicity in other.items():
-                self[element] += multiplicity
+                self._elements[element] += multiplicity
 
         return self
 
