@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing as t
 from collections import defaultdict
 
+
 T = t.TypeVar('T')
 V = t.TypeVar('V')
 
@@ -15,7 +16,7 @@ class BaseCounter(t.Mapping[T, int]):
             self._elements = mapping._elements.copy()
             return
 
-        self._elements = defaultdict(int)  # type: t.DefaultDict[T, int]
+        self._elements: t.DefaultDict[T, int] = defaultdict(int)
 
         if mapping is not None:
             self._elements.update(mapping)
@@ -150,7 +151,7 @@ class BaseCounter(t.Mapping[T, int]):
             if multiplicity < 0
         )
 
-    values = multiplicities  # type: t.Callable[[], t.ValuesView[T]]
+    values: t.Callable[[], t.ValuesView[T]] = multiplicities
 
     @classmethod
     def _as_counter(cls, other: t.Mapping[T, int]) -> BaseCounter[T]:

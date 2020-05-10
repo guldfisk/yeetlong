@@ -5,9 +5,9 @@ import typing as t
 import operator
 import collections
 
+
 K = t.TypeVar('K')
 V = t.TypeVar('V')
-
 
 __all__ = [
     'IndexedOrderedDict',
@@ -58,30 +58,30 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
         self._list[:] = []
         self._dict.clear()
 
-    def popitem(self, last=True):
+    def popitem(self, last = True):
         key = self._list.pop() if last else self._list.pop(0)
         value = self._dict.pop(key)
         return key, value
 
-    def move_to_end(self, key, last=True):
+    def move_to_end(self, key, last = True):
         self._list.remove(key)
         if last:
             self._list.append(key)
         else:
             self._list.insert(0, key)
-            
+
     def get_key_by_index(self, index: int) -> K:
         return self._list[index]
-    
+
     def get_value_by_index(self, index: int) -> V:
         return self._dict[self._list[index]]
-    
+
     def get_index_of_key(self, key: K) -> int:
         return self._list.index(key)
 
     _marker = object()
 
-    def pop(self, key, default=_marker):
+    def pop(self, key, default = _marker):
         if key in self:
             result = self[key]
             del self[key]
@@ -130,14 +130,14 @@ class DefaultMixin(t.Generic[V]):
         v = self._default_factory()
         super().__setitem__(key, v)
         return v
-    
+
     def __repr__(self) -> str:
         return '{}({}, {})'.format(
             self.__class__.__name__,
             self._default_factory,
             list(self.items()),
         )
-    
+
 
 class OrderedDefaultDict(DefaultMixin, collections.OrderedDict):
     __slots__ = ()

@@ -34,22 +34,34 @@ __all__ = [
 class BaseMultiset(t.AbstractSet[T]):
     __slots__ = ('_elements',)
 
-    def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
+    def __init__(self, iterable: t.Union[t.Iterable[T], t.Iterable[t.Tuple[T, int], int]] = None) -> None:
         if isinstance(iterable, self.__class__):
             self._elements = iterable._elements.copy()
             return
 
         self._elements: t.DefaultDict[T, int] = defaultdict(int)
 
-        if iterable is not None:
+        if iterable is None:
+            return 
 
-            if isinstance(iterable, t.Mapping):
-                for element, multiplicity in iterable.items():
-                    if multiplicity > 0:
-                        self._elements[element] = multiplicity
+        if isinstance(iterable, t.Mapping):
+            for element, multiplicity in iterable.items():
+                if multiplicity > 0:
+                    self._elements[element] = multiplicity
 
+        else:
+            try:
+                iterator = iterable.__iter__()
+                element = iterator.__next__()
+            except StopIteration:
+                return 
+            if isinstance(element, t.Sequence):
+                self._elements[element[0]] += element[1]
+                for element, multiplicity in iterator:
+                    self._elements[element] += multiplicity
             else:
-                for element in iterable:
+                self._elements[element] += 1
+                for element in iterator:
                     self._elements[element] += 1
 
     def __contains__(self, element: T) -> bool:
