@@ -300,7 +300,7 @@ class BaseMultiset(t.AbstractSet[T]):
     def elements(self) -> t.Mapping[T, int]:
         return self._elements
 
-    values = multiplicities  # type: t.Callable[[], t.ValuesView[T]]
+    values: t.Callable[[], t.ValuesView[T]] = multiplicities
 
     @classmethod
     def _as_multiset(cls, other: t.Iterable[T]) -> BaseMultiset[T]:
