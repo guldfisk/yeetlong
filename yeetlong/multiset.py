@@ -55,7 +55,7 @@ class BaseMultiset(t.AbstractSet[T]):
                 element = iterator.__next__()
             except StopIteration:
                 return 
-            if isinstance(element, t.Sequence):
+            if isinstance(element, t.Sequence) and not isinstance(element, str):
                 self._elements[element[0]] += element[1]
                 for element, multiplicity in iterator:
                     self._elements[element] += multiplicity
