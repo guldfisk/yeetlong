@@ -48,7 +48,7 @@ class TaskAwaiter(t.Generic[K, V]):
         with self._lock:
             del self._map[key]
 
-    def get_condition(self, key: K) -> t.Tuple[EventWithValue[V], bool]:
+    def get_condition(self, key: K) -> t.Tuple[EventWithValue[K, V], bool]:
         with self._lock:
             try:
                 return self._map[key], True
