@@ -11,15 +11,19 @@ V = t.TypeVar('V')
 class BaseCounter(t.Mapping[T, int]):
     __slots__ = ('_elements',)
 
-    def __init__(self, mapping: t.Optional[t.Mapping[T, int]] = None) -> None:
-        if isinstance(mapping, BaseCounter):
-            self._elements = mapping._elements.copy()
+    def __init__(self, items: t.Union[t.Mapping[T, int], t.Iterable[T], None] = None) -> None:
+        if isinstance(items, BaseCounter):
+            self._elements = items._elements.copy()
             return
 
         self._elements: t.DefaultDict[T, int] = defaultdict(int)
 
-        if mapping is not None:
-            self._elements.update(mapping)
+        if items is not None:
+            if isinstance(items, t.Mapping):
+                self._elements.update(items)
+            else:
+                for item in items:
+                    self._elements[item] += 1
 
     def __new__(cls, mapping: t.Optional[t.Mapping[T, int]] = None):
         if cls is BaseCounter:
