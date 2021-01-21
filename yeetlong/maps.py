@@ -109,6 +109,8 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
     def copy(self) -> IndexedOrderedDict:
         return self.__class__(self)
 
+    __copy__ = copy
+
     def __eq__(self, other: t.Mapping) -> bool:
         if isinstance(other, collections.OrderedDict) or isinstance(other, IndexedOrderedDict):
             return self._dict.__eq__(other) and all(map(operator.eq, self, other))
