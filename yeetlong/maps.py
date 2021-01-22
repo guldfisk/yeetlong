@@ -103,7 +103,6 @@ class IndexedOrderedDict(t.MutableMapping[K, V]):
         )
 
     def __reduce__(self):
-        inst_dict = {'_map': self._list, '_dict': self._dict}
         return self.__class__, (), None, None, iter(self.items())
 
     def copy(self) -> IndexedOrderedDict:
