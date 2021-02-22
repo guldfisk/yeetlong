@@ -17,7 +17,6 @@ from yeetlong.maps import OrderedDefaultDict, IndexedOrderedDefaultDict
 T = t.TypeVar('T')
 V = t.TypeVar('V')
 
-
 __all__ = [
     'BaseMultiset',
     'BaseOrderedMultiset',
@@ -34,7 +33,7 @@ __all__ = [
 class BaseMultiset(t.AbstractSet[T]):
     __slots__ = ('_elements',)
 
-    def __init__(self, iterable: t.Union[t.Iterable[T], t.Iterable[t.Tuple[T, int], int]] = None) -> None:
+    def __init__(self, iterable: t.Union[t.Iterable[t.Tuple[T, int]], t.Mapping[T, int], t.Iterable[T]] = None) -> None:
         if isinstance(iterable, self.__class__):
             self._elements = iterable._elements.copy()
             return
@@ -42,7 +41,7 @@ class BaseMultiset(t.AbstractSet[T]):
         self._elements: t.DefaultDict[T, int] = defaultdict(int)
 
         if iterable is None:
-            return 
+            return
 
         if isinstance(iterable, t.Mapping):
             for element, multiplicity in iterable.items():
@@ -54,7 +53,7 @@ class BaseMultiset(t.AbstractSet[T]):
                 iterator = iterable.__iter__()
                 element = iterator.__next__()
             except StopIteration:
-                return 
+                return
             if isinstance(element, t.Sequence) and not isinstance(element, str):
                 self._elements[element[0]] += element[1]
                 for element, multiplicity in iterator:
@@ -330,7 +329,7 @@ class BaseMultiset(t.AbstractSet[T]):
 
 class BaseOrderedMultiset(BaseMultiset[T]):
     __slots__ = ()
-    
+
     def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
         if isinstance(iterable, __class__):
             self._elements = copy.copy(iterable._elements)
@@ -376,7 +375,7 @@ class BaseIndexedOrderedMultiset(BaseOrderedMultiset[T]):
 
     def get_multiplicity_at_index(self, index: int) -> int:
         return self._elements.get_value_by_index(index)
-    
+
     def get_index_of_item(self, item: T) -> int:
         return self._elements.get_index_of_key(item)
 
@@ -519,7 +518,7 @@ class OrderedMultiset(Multiset[T], BaseOrderedMultiset[T]):
 
 class IndexedOrderedMultiset(Multiset[T], BaseIndexedOrderedMultiset[T]):
     __slots__ = ()
-    
+
 
 class FrozenMultiset(BaseMultiset[T]):
     __slots__ = ('_hash',)
