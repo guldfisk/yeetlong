@@ -72,6 +72,15 @@ class BaseMultiset(t.AbstractSet[T]):
             raise IndexError()
         return result
 
+    def dict_string(self) -> str:
+        return '{{{}}}'.format(
+            ', '.join(
+                '{}: {}'.format(item, multiplicity)
+                for item, multiplicity in
+                self.items()
+            )
+        )
+
     def __str__(self) -> str:
         return '{{{}}}'.format(
             ', '.join(
